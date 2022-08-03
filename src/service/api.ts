@@ -1,7 +1,10 @@
 import axios from 'axios';
-const { version } = require('../package.json');
+import { HexNum, Utf8Str } from 'types';
+import { Buffer } from 'buffer';
+const { version } = require('../../package.json');
 
 export const DEFAULT_API_URL = 'http://localhost:9112';
+export const DEFAULT_WS_API_URL = 'ws://accu.cc:8080/ws';
 
 //axios.defaults.withCredentials = true;
 export type ApiHttpResponse = {
@@ -120,4 +123,136 @@ export class Api extends base {
   async sendMsg() {
     return await this.httpRequest('send_msg', {}, HttpProtocolMethod.get);
   }
+}
+
+export interface WsApiHandler {
+  onMsgHandler?: (msg: any) => any;
+  onOpenHandler?: () => any;
+}
+
+export class WsApi {
+  private ws: WebSocket;
+
+  constructor(url?: string, wsHandler?: WsApiHandler) {
+    this.ws = new WebSocket(url || DEFAULT_WS_API_URL);
+
+    this.ws.onopen = wsHandler?.onOpenHandler || this.handleOpen;
+    this.ws.onmessage = wsHandler?.onMsgHandler || this.handleMessage;
+    this.ws.onerror = this.handleError;
+    this.ws.onclose = this.handleClose;
+  }
+
+  isConnected() {
+    if (this.ws == null) return false;
+
+    if (this.ws.readyState === WebSocket.OPEN) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  async _send(data: string | ArrayBuffer) {
+    if (this.ws.readyState === WebSocket.OPEN) {
+      await this.ws.send(data);
+    } else {
+      console.log('ws not open, abort send msg..');
+    }
+  }
+
+  handleClose(event: any, callBack?: any) {
+    console.log('ws close!', event);
+    if (callBack) {
+      callBack();
+    }
+  }
+
+  handleOpen(event: any) {
+    console.log('ws connected!', event);
+  }
+
+  handleError(event: any) {
+    console.error('error =>', event);
+    if (this.ws) {
+      this.ws.close();
+    }
+  }
+
+  handleMessage(event: any, callback?: (msg: any) => any) {
+    const msg = event.data;
+    console.log('msg received =>', msg);
+    if (callback != null) {
+      callback(msg);
+    }
+  }
+
+  async sendMsg(userId: number, msg: Utf8Str) {
+    const msgBuf = encodeMsg(userId, msg);
+    await this._send(msgBuf);
+  }
+
+  async sendSimpleMsg(userId: number | string, msg: Utf8Str) {
+    const data = encodeSimpleMsg(userId, msg);
+    await this._send(data);
+  }
+}
+
+export function encodeSimpleMsg(userId: number | string, msg: Utf8Str): string {
+  return `${userId}:${msg}`;
+}
+
+export function decodeSimpleMsg(msg: string) {
+  const value = msg.split(':');
+  if (value.length < 2) {
+    throw new Error('decode simple msg failed..');
+  }
+  return {
+    userId: value[0],
+    msg: value[1],
+  };
+}
+
+export function encodeMsg(userId: number, msg: Utf8Str): Buffer {
+  const msgBytes = utf8StrToBuffer(msg);
+  const msgSize = u32ToLEBuffer(msgBytes.length);
+  const id = u32ToLEBuffer(userId);
+  return Buffer.concat([id, msgSize, msgBytes]);
+}
+
+export function decodeMsg(msgInfo: Buffer) {
+  const userIdBuf = msgInfo.slice(0, 4);
+  const msgSizeBuf = msgInfo.slice(4, 8);
+  const msgBuf = msgInfo.slice(8);
+
+  const userIdNumber = LEBufferToU32(userIdBuf);
+  const msg = bufferToUtf8Str(msgBuf);
+  const msgSize = LEBufferToU32(msgSizeBuf);
+  return {
+    userId: userIdNumber,
+    msgSize,
+    msg,
+  };
+}
+
+export function u32ToLEBuffer(u32: number): Buffer {
+  const buf = Buffer.alloc(4);
+  buf.writeUInt32LE(u32);
+  return buf;
+}
+
+export function LEBufferToU32(buf: Buffer): number {
+  const value = buf.readUInt32LE();
+  return value;
+}
+
+export function utf8StrToBuffer(msg: Utf8Str): Buffer {
+  const encoder = new TextEncoder();
+  var uint8array = encoder.encode(msg);
+  return Buffer.from(uint8array);
+}
+
+export function bufferToUtf8Str(buf: Buffer) {
+  const decoder = new TextDecoder();
+  const string = decoder.decode(buf);
+  return string;
 }
