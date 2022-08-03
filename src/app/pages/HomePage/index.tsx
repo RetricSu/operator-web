@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Grid, TextField, Button } from '@mui/material';
+import { Grid } from '@mui/material';
+import 'papercss';
+import { getPublicKeyFromPrivateKey } from 'service/crypto';
 
 export const styles = {
   root: {
     maxWidth: '1000px',
-    fontSize: '20px',
     margin: '0 auto',
   },
   loginBox: {
@@ -34,8 +35,9 @@ export const styles = {
 export function HomePage() {
   const [privKey, setPrivkey] = useState<string>();
   const [roomId, setRoomId] = useState<string>();
-  const privKeyInput = React.useRef<HTMLInputElement>(null);
-  const roomIdInput = React.useRef<HTMLInputElement>(null);
+  const [publicKey, setPublicKey] = useState<string>();
+  const privKeyInput = useRef<HTMLInputElement>(null);
+  const roomIdInput = useRef<HTMLInputElement>(null);
 
   const handlePrivKeyAndRoomId = async () => {
     const pk = privKeyInput.current?.value;
@@ -45,6 +47,13 @@ export function HomePage() {
     setPrivkey(pk);
     setRoomId(rd);
   };
+
+  useEffect(() => {
+    if (privKey == null) return;
+
+    //"MIICWwIBAAKBgHt9IZ0CoOwy4ZwUd+kgUnbM3SlivpS78gi+bY6dgw6X06ZdosHeU64mXabrJT6vUggg5oP6VB28BbCBnQBjo10iMsk3D50hRlsp1OxfZlSE5p+sZIEKbmMBXEHt9QKTMjhyAfANXp1IdRGHJ0/Vx0OxTGOonIVJ9jWm/auTVa+TAgMBAAECgYAO2/nFeOGASocXTuc26CrEHNan+jfQkeUH5FIujQmOIfrX1ACXr3cGR5uRUE5FAreuPrc+PksM4OkWWiJYP6USjmZ4hZ3WEBiaroe9BYww/0ehvmGL7K+q0ygfxf5Z/e+OxJCijPIyNsugqWGU44xzwB20TjC0fPPG7HMN+cXNsQJBANSvKhiJFBXCvGttjJWNRapfe0aREI2IOUssrM7zdKmcjrU2+hwzLAkA/9ytBSIaYwH0vFjEM4IQco5U368k2Q0CQQCUo4jpeFO+XIKHh0RZKc6o55Z4jCRCFxFF5kB0cYz+gVGQqb9rI873t1lgIWaEoD1xz58ifpIiAUtd72vXFUMfAkBETl1+s8e3lWteNTjJby3IohG9gCmIyw9bjWWSsa3uK1HJ8XYySF0EJ0YFYawcX80ce7Vh7OF+DDo+bBPK9FKhAkAHGnmkjreR1WH3kCNYD4Ns1wR95lSlQ+zzZjmWVwbh8tQvEa2wNRnjBMQkr/PySqYlFkMIpvvc3Cr55kNFGCMJAkEArmfLUOlHBWkXKsx1obHVvhWZOkS25lAQNYo8K1LHtJ1ReVZwSj1Hj8LOzn9gYToU9LHPn4Io38nxOneGOLIXsg=="
+    setPublicKey(getPublicKeyFromPrivateKey(privKey));
+  }, [privKey]);
 
   return (
     <>
@@ -57,24 +66,41 @@ export function HomePage() {
         <Grid container spacing={2}>
           <Grid item xs={6} style={styles.loginBox}>
             <p>
-              privKey: <input type="text" ref={privKeyInput} /> (Only for demo)
+              privKey:{' '}
+              <input
+                style={{ width: '90%' }}
+                type="text"
+                className="input-block"
+                ref={privKeyInput}
+              />{' '}
+              (Only for demo)
             </p>
             <p>
-              roomId: <input type="text" ref={roomIdInput} />
+              roomId:{' '}
+              <input
+                style={{ width: '90%' }}
+                type="text"
+                className="input-block"
+                ref={roomIdInput}
+              />
             </p>
             <p>
-              <Button onClick={handlePrivKeyAndRoomId} variant="outlined">
+              <button
+                className="btn-secondary"
+                onClick={handlePrivKeyAndRoomId}
+              >
                 start
-              </Button>
+              </button>
             </p>
           </Grid>
           <Grid item xs={6} style={styles.loginInfo}>
             {privKey && (
               <div>
-                <h4>Welcome, User {privKey}</h4>
-                <p>
-                  <small>have a good and private group chat!</small>
-                </p>
+                <h4>Welcome, User</h4>
+                <p>publicKey: {publicKey?.slice(0, 16)}...</p>
+                <p>privateKey: {privKey?.slice(0, 16)}...</p>
+                <hr />
+                <p>have a good and private group chat!</p>
               </div>
             )}
           </Grid>
@@ -87,14 +113,14 @@ export function HomePage() {
           <Grid container spacing={2}>
             <Grid item xs={4}>
               <p>Write Msg</p>
-              <TextField
-                placeholder="what you thinking.."
-                multiline
+              <textarea
+                placeholder="something on your mind.."
+                id="large-input"
                 rows={8}
-                fullWidth
+                style={{ width: '100%' }}
               />
               <p>
-                <Button variant="outlined">send</Button>
+                <button className="btn-success">send</button>
               </p>
             </Grid>
             <Grid item xs={8}>

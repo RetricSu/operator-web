@@ -62,6 +62,21 @@ export function generateRandomBytes(length: number) {
   return '0x' + CryptoJS.lib.WordArray.random(length).toString(HEX_ENCODING);
 }
 
+export function generateRandomRsaKeys() {
+  const key = new JSEncrypt();
+  const info = key.getKey();
+  return {
+    privateKey: info.getPrivateBaseKeyB64(),
+    publicKey: info.getPublicBaseKeyB64(),
+  };
+}
+
+export function getPublicKeyFromPrivateKey(privateKey: Base64Str): Base64Str {
+  const key = new JSEncrypt();
+  key.setPrivateKey(privateKey);
+  return key.getPublicKeyB64();
+}
+
 // aes key and iv
 export function encryptTextToPk(encryptionPublicKey: string, text: Utf8Str) {
   console.info(`pk: ${encryptionPublicKey}, text: ${text}`);
