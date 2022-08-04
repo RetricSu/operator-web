@@ -28,5 +28,6 @@ export function genTestData() {
   const rsaArray = genRsaPairs();
   const key = generateRandomAesKey();
   const iv = generateRandomIv();
+  console.log('rsaArray =>', rsaArray);
   console.log('gen test data =>', genData(rsaArray, key, iv));
 }
