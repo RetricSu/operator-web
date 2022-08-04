@@ -2,8 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Grid } from '@mui/material';
 import 'papercss';
-import { getPublicKeyFromPrivateKey } from 'service/crypto';
-import { decodeSimpleMsg, WsApi } from 'service/api';
+import {
+  decrypt,
+  decryptWithPrivateKey,
+  encrypt,
+  getPublicKeyFromPrivateKey,
+} from 'service/crypto';
+import { Api, decodeSimpleMsg, WsApi } from 'service/api';
 import { Utf8Str } from 'types';
 
 export const styles = {
@@ -34,7 +39,8 @@ export const styles = {
   },
 };
 
-let api: WsApi | undefined;
+const api: Api = new Api();
+let wsApi: WsApi | undefined;
 
 export interface MsgItem {
   userId: string;
@@ -48,6 +54,8 @@ export function HomePage() {
   const [receiveMsg, setReceiveMsg] = useState<string>();
   const [isWsConnected, setIsWsConnected] = useState<boolean>(false);
   const [msgList, setMsgList] = useState<MsgItem[]>([]);
+  const [aesKey, setAesKey] = useState<string>();
+  const [aesIv, setAesIv] = useState<string>();
 
   const privKeyInput = useRef<HTMLInputElement>(null);
   const roomIdInput = useRef<HTMLInputElement>(null);
@@ -79,13 +87,28 @@ export function HomePage() {
     const msg = writeMsgInput.current?.value;
     if (msg == null || publicKey == null) return;
 
-    await api?.sendSimpleMsg(publicKey, msg);
+    const encryptedMsg = encrypt(msg, aesKey!, aesIv!);
+    await wsApi?.sendSimpleMsg(publicKey, encryptedMsg);
     writeMsgInput.current!.value = '';
   };
 
+  const fetchAesEnvelop = async () => {
+    const res = await api.getAesEnvelop(publicKey!);
+    if (res == null) {
+      console.error('AES envelop not found');
+      return;
+    }
+
+    const aesKey = decryptWithPrivateKey(res.AESKey, privKey!);
+    const aesIv = decryptWithPrivateKey(res.AESIV, privKey!);
+    setAesIv(aesIv);
+    setAesKey(aesKey);
+  };
+
   useEffect(() => {
+    fetchAesEnvelop();
     // connect to p2p server
-    api = new WsApi(undefined, {
+    wsApi = new WsApi(undefined, {
       onMsgHandler: (event: any) => {
         console.log(event.data);
         setReceiveMsg(event.data);
@@ -100,11 +123,16 @@ export function HomePage() {
     if (receiveMsg == null) return;
 
     const item = decodeSimpleMsg(receiveMsg);
+    const decryptedMsg = decrypt(item.msg, aesKey!, aesIv!);
+    if (decryptedMsg == null) {
+      throw new Error('can not decypt msg');
+    }
+    item.msg = decryptedMsg;
     setMsgList(oldArray => [...oldArray, item]);
   }, [receiveMsg]);
 
-  const msgListJsx = msgList.map(msg => (
-    <div style={styles.msg}>
+  const msgListJsx = msgList.map((msg, id) => (
+    <div key={id} style={styles.msg}>
       <p>
         <small>user pk: {msg.userId}</small>
       </p>

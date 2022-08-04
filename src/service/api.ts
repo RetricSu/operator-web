@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { HexNum, Utf8Str } from 'types';
+import { Base64Str, HexNum, Utf8Str } from 'types';
 import { Buffer } from 'buffer';
 const { version } = require('../../package.json');
 
-export const DEFAULT_API_URL = 'http://localhost:9112';
+export const DEFAULT_API_URL = 'http://accu.cc:8080';
 export const DEFAULT_WS_API_URL = 'ws://accu.cc:8080/ws';
 
 //axios.defaults.withCredentials = true;
@@ -93,6 +93,11 @@ export class base {
   }
 }
 
+export interface Envelop {
+  AESIV: string;
+  AESKey: string;
+}
+
 export class Api extends base {
   constructor(url?: string, httpRequest?: HttpRequest) {
     const newHttpRequest = async (
@@ -105,11 +110,19 @@ export class Api extends base {
         params,
         type,
       );
-      if (response.status === 'failed')
-        throw new Error(`httpRequest server error: ${response.error}`);
-      return response.data;
+      return response;
     };
     super(url || DEFAULT_API_URL, httpRequest || newHttpRequest);
+  }
+
+  async getAesEnvelop(rsaPublicKey: Base64Str): Promise<Envelop | null> {
+    return await this.httpRequest(
+      'getAesEnvelop',
+      {
+        rsaPublicKey,
+      },
+      HttpProtocolMethod.get,
+    );
   }
 
   async getRoomInfo() {

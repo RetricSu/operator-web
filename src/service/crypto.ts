@@ -83,6 +83,7 @@ export function encryptTextToPk(encryptionPublicKey: string, text: Utf8Str) {
   const encrypt = new JSEncrypt();
   encrypt.setPublicKey(encryptionPublicKey);
   const encrypted = encrypt.encrypt(text);
+  if (encrypted === false) throw new Error('encrypt failed..');
   return encrypted;
 }
 
@@ -94,5 +95,6 @@ export function decryptWithPrivateKey(
   const decrypt = new JSEncrypt();
   decrypt.setPrivateKey(privateKey);
   const decrypted = decrypt.decrypt(encryptedText);
+  if (decrypted === false) throw new Error('decrypt failed..');
   return decrypted;
 }
