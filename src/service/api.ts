@@ -46,9 +46,10 @@ export class base {
       const baseUrl = this.url;
       const params = { ..._params, version };
       let axiosRes;
+      const url = encodeURI(`${baseUrl}/${method}`);
       switch (type) {
         case HttpProtocolMethod.get:
-          axiosRes = await axios.get(`${baseUrl}/${method}`, {
+          axiosRes = await axios.get(url, {
             params,
             ...cfg,
           });
@@ -56,7 +57,7 @@ export class base {
 
         case HttpProtocolMethod.post:
           axiosRes = await axios.post(
-            `${baseUrl}/${method}`,
+            url,
             {
               data: params,
             },

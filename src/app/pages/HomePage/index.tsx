@@ -99,6 +99,8 @@ export function HomePage() {
       return;
     }
 
+    console.log(res);
+
     const aesKey = decryptWithPrivateKey(res.AESKey, privKey!);
     const aesIv = decryptWithPrivateKey(res.AESIV, privKey!);
     setAesIv(aesIv);
@@ -106,6 +108,8 @@ export function HomePage() {
   };
 
   useEffect(() => {
+    if (privKey == null) return;
+
     fetchAesEnvelop();
     // connect to p2p server
     wsApi = new WsApi(undefined, {
