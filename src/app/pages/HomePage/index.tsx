@@ -131,6 +131,7 @@ export function HomePage() {
     if (decryptedMsg == null) {
       throw new Error('can not decypt msg');
     }
+    item['encryptedMsg'] = item.msg;
     item.msg = decryptedMsg;
     setMsgList(oldArray => [...oldArray, item]);
   }, [receiveMsg]);
@@ -138,9 +139,11 @@ export function HomePage() {
   const msgListJsx = msgList.map((msg, id) => (
     <div key={id} style={styles.msg}>
       <p>
-        <small>user pk: {msg.userId}</small>
+        <small>User~{msg.userId}</small>
       </p>
-      <p>{msg.msg}</p>
+      <p>
+        [{msg['encryptedMsg']}] {msg.msg}
+      </p>
     </div>
   ));
 
