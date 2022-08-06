@@ -127,9 +127,10 @@ export function HomePage() {
     if (receiveMsg == null) return;
 
     const item = decodeSimpleMsg(receiveMsg);
-    const decryptedMsg = decrypt(item.msg, aesKey!, aesIv!);
+    let decryptedMsg = decrypt(item.msg, aesKey!, aesIv!);
     if (decryptedMsg == null) {
-      throw new Error('can not decypt msg');
+      console.error('can not decypt msg');
+      decryptedMsg = 'decrypt failed..';
     }
     item['encryptedMsg'] = item.msg;
     item.msg = decryptedMsg;
